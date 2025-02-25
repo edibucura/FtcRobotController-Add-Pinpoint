@@ -25,8 +25,6 @@ package org.firstinspires.ftc.teamcode;
 import static com.qualcomm.robotcore.util.TypeConversion.byteArrayToInt;
 
 import com.qualcomm.hardware.lynx.LynxI2cDeviceSynch;
-import com.qualcomm.hardware.lynx.LynxNackException;
-import com.qualcomm.hardware.lynx.commands.standard.LynxNack;
 import com.qualcomm.robotcore.hardware.I2cAddr;
 import com.qualcomm.robotcore.hardware.I2cDeviceSynchDevice;
 import com.qualcomm.robotcore.hardware.I2cDeviceSynchSimple;
@@ -156,38 +154,12 @@ public class GoBildaPinpointDriver extends I2cDeviceSynchDevice<I2cDeviceSynchSi
     }
 
 
-    // Wrappers for reading and writing bytes to prevent raised exceptions from restarting the robot
-    private byte[] wrapperDeviceRead(int ireg, int creg){
-        try {
-            return deviceClient.read(ireg, creg);
-        }
-        catch (Exception ex) {
-            if (ex instanceof LynxNackException) {
-                LynxNackException lynxEx = (LynxNackException)ex;
-            }
-            /// read failed, return empty array of bytes and handle it elsewhere?
-            return new byte[creg];
-        }
-    }
-
-    private void wrapperDeviceWrite(int ireg, byte[] data){
-        try {
-            deviceClient.write(ireg, data);
-        }
-        catch (Exception ex) {
-            if (ex instanceof LynxNackException) {
-                LynxNackException lynxEx = (LynxNackException)ex;
-                /// write failed, lynxEx.getMessage(); for more info
-            }
-        }
-    }
-
     /** Writes an int to the i2c device
     @param reg the register to write the int to
      @param i the integer to write to the register
      */
     private void writeInt(final Register reg, int i){
-        wrapperDeviceWrite(reg.bVal, TypeConversion.intToByteArray(i,ByteOrder.LITTLE_ENDIAN));
+        deviceClient.write(reg.bVal, TypeConversion.intToByteArray(i,ByteOrder.LITTLE_ENDIAN));
     }
 
     /**
@@ -196,7 +168,7 @@ public class GoBildaPinpointDriver extends I2cDeviceSynchDevice<I2cDeviceSynchSi
      * @return returns an int that contains the value stored in the read register
      */
     private int readInt(Register reg){
-        return byteArrayToInt(wrapperDeviceRead(reg.bVal,4), ByteOrder.LITTLE_ENDIAN);
+        return byteArrayToInt(deviceClient.read(reg.bVal,4), ByteOrder.LITTLE_ENDIAN);
     }
 
     /**
@@ -215,7 +187,7 @@ public class GoBildaPinpointDriver extends I2cDeviceSynchDevice<I2cDeviceSynchSi
      */
 
     private float readFloat(Register reg){
-        return byteArrayToFloat(wrapperDeviceRead(reg.bVal,4),ByteOrder.LITTLE_ENDIAN);
+        return byteArrayToFloat(deviceClient.read(reg.bVal,4),ByteOrder.LITTLE_ENDIAN);
     }
 
 
@@ -234,7 +206,7 @@ public class GoBildaPinpointDriver extends I2cDeviceSynchDevice<I2cDeviceSynchSi
      * @param bytes the byte array to write
      */
     private void writeByteArray (Register reg, byte[] bytes){
-        wrapperDeviceWrite(reg.bVal,bytes);
+        deviceClient.write(reg.bVal,bytes);
     }
 
     /**
@@ -244,7 +216,7 @@ public class GoBildaPinpointDriver extends I2cDeviceSynchDevice<I2cDeviceSynchSi
      */
     private void writeFloat (Register reg, float f){
         byte[] bytes = ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putFloat(f).array();
-        wrapperDeviceWrite(reg.bVal,bytes);
+        deviceClient.write(reg.bVal,bytes);
     }
 
     /**
@@ -283,7 +255,7 @@ public class GoBildaPinpointDriver extends I2cDeviceSynchDevice<I2cDeviceSynchSi
      * Call this once per loop to read new data from the Odometry Computer. Data will only update once this is called.
      */
     public void update(){
-        byte[] bArr   = wrapperDeviceRead(Register.BULK_READ.bVal, 40);
+        byte[] bArr   = deviceClient.read(Register.BULK_READ.bVal, 40);
         deviceStatus  = byteArrayToInt(Arrays.copyOfRange  (bArr, 0, 4),  ByteOrder.LITTLE_ENDIAN);
         loopTime      = byteArrayToInt(Arrays.copyOfRange  (bArr, 4, 8),  ByteOrder.LITTLE_ENDIAN);
         xEncoderValue = byteArrayToInt(Arrays.copyOfRange  (bArr, 8, 12), ByteOrder.LITTLE_ENDIAN);
@@ -304,7 +276,7 @@ public class GoBildaPinpointDriver extends I2cDeviceSynchDevice<I2cDeviceSynchSi
      */
     public void update(readData data) {
         if (data == readData.ONLY_UPDATE_HEADING) {
-            hOrientation = byteArrayToFloat(wrapperDeviceRead(Register.H_ORIENTATION.bVal, 4), ByteOrder.LITTLE_ENDIAN);
+            hOrientation = byteArrayToFloat(deviceClient.read(Register.H_ORIENTATION.bVal, 4), ByteOrder.LITTLE_ENDIAN);
         }
     }
 
